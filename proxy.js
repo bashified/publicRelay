@@ -7,23 +7,29 @@ const PORT = 4516;
 
 const server = http.createServer(function(req, res) {
     const parsedUrl = url.parse(req.url, true);
-    
+
     if (req.method === "GET" && parsedUrl.pathname === "/") {
         res.writeHead(200, { "Content-Type": "text/plain" });
         res.end("Server is up. For issues, contact: contactkeshav@proton.me");
+        return;
     }
 
     let body = "";
     req.on("data", function(chunk) {
         body += chunk;
     });
-    
+
     req.on("end", function() {
         if (clientSocket && clientSocket.readyState === WebSocket.OPEN) {
             const endpoint = parsedUrl.pathname;
             const method = req.method;
-            const message = method + "||" + endpoint + "||" + body;
+
+            const forwarded = req.headers['x-forwarded-for'];
+            const clientIP = forwarded || req.socket.remoteAddress || "unknown";
+
+            const message = method + "||" + endpoint + "||" + clientIP + "||" + body;
             clientSocket.send(message);
+
             clientSocket.once("message", function(response) {
                 res.writeHead(200, { "Content-Type": "text/plain" });
                 res.end(response.toString());
@@ -33,7 +39,6 @@ const server = http.createServer(function(req, res) {
             res.end("Backend has lost connection to the proxy, contact: contactkeshav@proton.me");
         }
     });
-
 });
 
 const wss = new WebSocket.Server({ server });
@@ -57,7 +62,6 @@ wss.on("connection", function(ws, req) {
         console.log("[WS] Message from client:", msg.toString());
     });
 });
-
 
 server.listen(PORT, function() {
     console.log("[+] HTTP + WebSocket server listening on port " + PORT);
