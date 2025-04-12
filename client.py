@@ -10,11 +10,19 @@ PROXY_WS_URL = "ws://something:someport"
 
 def on_message(ws, message):
     try:
-        method, path, body = message.split("||", 2)
-        print(f"[Received] {method} {path} with body: {body[:30]}...")
+        method, path, ip, body = message.split("||", 3)
+        print(f"[Received] {method} {path} from IP {ip} with body: {body[:30]}...")
 
-        # Send request to local API
-        response = requests.request(method, f"http://{machine}:{localapiport}{path}", data=body)
+        headers = {
+            "X-Forwarded-For": ip
+        }
+
+        response = requests.request(
+            method,
+            f"http://{machine}:{localapiport}{path}",
+            data=body,
+            headers=headers
+        )
         ws.send(response.text)
 
     except Exception as e:
