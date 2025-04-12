@@ -5,8 +5,8 @@ import requests
 # host this using nohup, this needs to be on a background thread simply requesting API on port 4545
 
 machine = "localhost"
-localapiport = 4545
-PROXY_WS_URL = "ws://217.160.125.127:9516"
+localapiport = 0000
+PROXY_WS_URL = ""
 
 def on_message(ws, message):
     try:
