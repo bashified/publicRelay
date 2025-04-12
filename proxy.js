@@ -27,7 +27,7 @@ const server = http.createServer(function(req, res) {
             const forwarded = req.headers['x-forwarded-for'];
             const addrIP = forwarded ? forwarded.split(",")[0].trim() : req.socket.remoteAddress;
             const clientIP = addrIP.startsWith("::ffff:") ? addrIP.slice(7) : addrIP;
-            // console.log(clientIP);
+            // console.log(clientIP); // debug
 
 
             const message = method + "||" + endpoint + "||" + clientIP + "||" + body;
