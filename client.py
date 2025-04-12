@@ -6,7 +6,7 @@ import requests
 
 machine = "localhost"
 localapiport = 4545
-PROXY_WS_URL = ""
+PROXY_WS_URL = "ws://something:someport"
 
 def on_message(ws, message):
     try:
