@@ -1,10 +1,8 @@
 import websocket
 import threading
 import requests
-import json
 
-# host this using nohup, this needs to be on a background thread simply requesting API on port 4545
-
+# Proxy WebSocket URL and local API target
 machine = "localhost"
 localapiport = 4545
 PROXY_WS_URL = "ws://217.160.125.127:9516"
@@ -16,7 +14,7 @@ def on_message(ws, message):
 
         headers = {
             "X-Forwarded-For": ip,
-            "Content-Type": "application/json"  # optional, depends on your API
+            "Content-Type": "text/plain" if "text/plain" in body else "application/json"
         }
 
         response = requests.request(
@@ -26,28 +24,11 @@ def on_message(ws, message):
             headers=headers
         )
 
-        result = {
-            "status": response.status_code,
-            "headers": {
-                "Content-Type": response.headers.get("Content-Type", "text/plain"),
-                "Access-Control-Allow-Origin": "*"  # Allowed all cross origin requests
-            },
-            "body": response.text
-        }
-
-        ws.send(json.dumps(result))
+        ws.send(response.text)
 
     except Exception as e:
         print("Error handling message:", e)
-        error_result = {
-            "status": 500,
-            "headers": {
-                "Content-Type": "text/plain",
-                "Access-Control-Allow-Origin": "*"
-            },
-            "body": f"Error: {str(e)}"
-        }
-        ws.send(json.dumps(error_result))
+        ws.send("Error: " + str(e))
         
 def on_open(ws):
     print("[+] Connected to proxy WebSocket")
