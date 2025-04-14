@@ -8,7 +8,17 @@ const PORT = 9516;
 const server = http.createServer(function (req, res) {
     const parsedUrl = url.parse(req.url, true);
     const method = req.method;
-    const endpoint = parsedUrl.pathname + (parsedUrl.search || "");
+
+    if (method === "OPTIONS") {
+        // ✅ Proper CORS headers for preflight request
+        res.writeHead(200, {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, X-Requested-With",
+        });
+        res.end();
+        return;
+    }
 
     if (method === "GET" && parsedUrl.pathname === "/") {
         res.writeHead(200, { "Content-Type": "text/plain" });
@@ -23,27 +33,27 @@ const server = http.createServer(function (req, res) {
 
     req.on("end", function () {
         if (clientSocket && clientSocket.readyState === WebSocket.OPEN) {
+            const endpoint = parsedUrl.pathname;
+
             const forwarded = req.headers["x-forwarded-for"];
             const addrIP = forwarded ? forwarded.split(",")[0].trim() : req.socket.remoteAddress;
             const clientIP = addrIP.startsWith("::ffff:") ? addrIP.slice(7) : addrIP;
 
-            const message = method + "||" + endpoint + "||" + clientIP + "||" + (body || "");
-            console.log("[Proxy -> Client] " + message);
-
+            const message = method + "||" + endpoint + "||" + clientIP + "||" + body;
             clientSocket.send(message);
 
             clientSocket.once("message", function (response) {
-                try {
-                    const parsed = JSON.parse(response);
-                    res.writeHead(parsed.status, parsed.headers);
-                    res.end(parsed.body);
-                } catch (e) {
-                    res.writeHead(500, { "Content-Type": "text/plain" });
-                    res.end("Invalid JSON from tunnel client.");
-                }
+                res.writeHead(200, {
+                    "Content-Type": "text/plain",
+                    "Access-Control-Allow-Origin": "*", // ✅ Allow CORS on response
+                });
+                res.end(response.toString());
             });
         } else {
-            res.writeHead(500, { "Content-Type": "text/plain" });
+            res.writeHead(500, {
+                "Content-Type": "text/plain",
+                "Access-Control-Allow-Origin": "*", // ✅ Even error should allow CORS
+            });
             res.end("Backend has lost connection to the proxy, contact: contactkeshav@proton.me");
         }
     });
@@ -72,5 +82,5 @@ wss.on("connection", function (ws, req) {
 });
 
 server.listen(PORT, function () {
-    console.log("[+] HTTP + WebSocket proxy listening on port " + PORT);
+    console.log("[+] HTTP + WebSocket server listening on port " + PORT);
 });
