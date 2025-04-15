@@ -59,7 +59,7 @@ const server = http.createServer(function (req, res) {
     });
 });
 
-const wss = new WebSocket.Server({ server });
+const ws = new WebSocket.Server({ server });
 
 ws.on('connection', function connection(client) {
     client.on('message', function incoming(msg) {
@@ -67,8 +67,6 @@ ws.on('connection', function connection(client) {
     });
   
     server.on('request', (req, res) => {
-      if (req.url.startsWith('/wsproxy')) return;
-  
       const { method, url, headers, connection } = req;
       let body = '';
       req.on('data', chunk => (body += chunk));
