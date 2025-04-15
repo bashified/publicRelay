@@ -11,12 +11,10 @@ def on_message(ws, message):
     try:
         data = json.loads(message)
         method = data["method"]
-        path = data["path"]
-        ip = data["ip"]
+        path = data["endpoint"]
+        ip = data["clientIP"]
         body = data["body"]
         headers = data.get("headers", {})
-
-        headers["X-Forwarded-For"] = ip
 
         response = requests.request(
             method,
