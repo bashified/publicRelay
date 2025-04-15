@@ -45,14 +45,14 @@ const server = http.createServer(function (req, res) {
             clientSocket.once("message", function (response) {
                 res.writeHead(200, {
                     "Content-Type": "text/plain",
-                    "Access-Control-Allow-Origin": "*", // ✅ Allow CORS on response
+                    "Access-Control-Allow-Origin": "*",
                 });
                 res.end(response.toString());
             });
         } else {
             res.writeHead(500, {
                 "Content-Type": "text/plain",
-                "Access-Control-Allow-Origin": "*", // ✅ Even error should allow CORS
+                "Access-Control-Allow-Origin": "*",
             });
             res.end("Backend has lost connection to the proxy, contact: contactkeshav@proton.me");
         }
@@ -61,25 +61,37 @@ const server = http.createServer(function (req, res) {
 
 const wss = new WebSocket.Server({ server });
 
-wss.on("connection", function (ws, req) {
-    if (clientSocket && clientSocket.readyState === WebSocket.OPEN) {
-        console.log("[-] Rejected extra WebSocket connection");
-        ws.close(403, "Only one tunnel client allowed");
-        return;
-    }
-
-    console.log("[+] Tunnel client connected via WebSocket");
-    clientSocket = ws;
-
-    ws.on("close", function () {
-        console.log("[-] Tunnel client disconnected");
-        clientSocket = null;
+ws.on('connection', function connection(client) {
+    client.on('message', function incoming(msg) {
+      // Not needed for incoming messages here
     });
-
-    ws.on("message", function (msg) {
-        console.log("[WS] Message from client:", msg.toString());
+  
+    server.on('request', (req, res) => {
+      if (req.url.startsWith('/wsproxy')) return;
+  
+      const { method, url, headers, connection } = req;
+      let body = '';
+      req.on('data', chunk => (body += chunk));
+      req.on('end', () => {
+        const ip = connection.remoteAddress;
+  
+        const payload = JSON.stringify({
+          method,
+          path: url,
+          ip,
+          headers,
+          body
+        });
+  
+        client.send(payload);
+  
+        client.once('message', response => {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end(response);
+        });
+      });
     });
-});
+  });
 
 server.listen(PORT, function () {
     console.log("[+] HTTP + WebSocket server listening on port " + PORT);
