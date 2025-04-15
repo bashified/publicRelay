@@ -1,21 +1,22 @@
 import websocket
 import threading
 import requests
+import json
 
-# Proxy WebSocket URL and local API target
 machine = "localhost"
 localapiport = 4545
 PROXY_WS_URL = "ws://217.160.125.127:9516"
 
 def on_message(ws, message):
     try:
-        method, path, ip, body = message.split("||", 3)
-        print(f"[Received] {method} {path} from IP {ip} with body: {body[:30]}...")
+        data = json.loads(message)
+        method = data["method"]
+        path = data["path"]
+        ip = data["ip"]
+        body = data["body"]
+        headers = data.get("headers", {})
 
-        headers = {
-            "X-Forwarded-For": ip,
-            "Content-Type": "text/plain" if "text/plain" in body else "application/json"
-        }
+        headers["X-Forwarded-For"] = ip
 
         response = requests.request(
             method,
@@ -25,7 +26,6 @@ def on_message(ws, message):
         )
 
         ws.send(response.text)
-
     except Exception as e:
         print("Error handling message:", e)
         ws.send("Error: " + str(e))
