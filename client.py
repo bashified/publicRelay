@@ -37,15 +37,19 @@ def on_close(ws, close_status_code, close_msg):
 def on_error(ws, error):
     print("[!] WebSocket error:", error)
 
-def start_client():
-    ws = websocket.WebSocketApp(
-        PROXY_WS_URL,
-        on_open=on_open,
-        on_message=on_message,
-        on_close=on_close,
-        on_error=on_error
-    )
+def run():
+    while True:
+        try:
+            ws = websocket.WebSocketApp(
+                PROXY_WS_URL,
+                on_open=on_open,
+                on_message=on_message,
+                on_close=on_close,
+                on_error=on_error
+            )
 
-    ws.run_forever()
-
-start_client()
+            ws.run_forever()
+        except Exception as e:
+            print("retrying connection in 5 seconds due to error:", e)
+            import time
+            time.sleep(5)
