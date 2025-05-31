@@ -53,3 +53,5 @@ def run():
             print("retrying connection in 5 seconds due to error:", e)
             import time
             time.sleep(5)
+
+run()
