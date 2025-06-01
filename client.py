@@ -14,7 +14,9 @@ def on_message(ws, message):
         path = data["endpoint"]
         ip = data["clientIP"]   # sending this over to localhost using x-forwarded-for
         body = data["body"]
-        headers = data.get("headers", {}) + [{"X-Forwarded-For": ip}]
+        headers = data.get("headers", {})
+        headers.update({"X-Forwarded-For": ip})
+
 
         response = requests.request(
             method,
