@@ -12,9 +12,9 @@ def on_message(ws, message):
         data = json.loads(message)
         method = data["method"]
         path = data["endpoint"]
-        ip = data["clientIP"]
+        ip = data["clientIP"]   # sending this over to localhost using x-forwarded-for
         body = data["body"]
-        headers = data.get("headers", {})
+        headers = data.get("headers", {}) + [{"X-Forwarded-For": ip}]
 
         response = requests.request(
             method,
