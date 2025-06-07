@@ -1,77 +1,86 @@
-# Reverse Proxy - Expose Localhost to Public Network
+# HTTP Tunnel – Expose Localhost to Public Network
 
-## Overview
 
-This project is a reverse proxy solution designed to expose your local server to the public network. Built with Node.js and Python, it combines WebSockets (`ws`), HTTP, and Flask to create a bridge between your local environment and the outside world. Whether you're working on local development or need quick access to private servers, this reverse proxy solution ensures your applications are accessible remotely.
+### Overview
 
-## Features
+This project is an HTTP tunneling solution designed to expose your local server to the public internet. Built using Node.js and Python, it leverages WebSockets (ws), HTTP, and Flask to create a secure tunnel between your local environment and a publicly accessible endpoint. This makes it perfect for local development, remote testing, or quickly sharing your service without port forwarding.
 
-- **Localhost Exposure**: Exposes local services to the internet.
-- **WebSocket Support**: Real-time communication between client and server.
-- **Flask Integration**: Python Flask-based API for managing reverse proxy functionality.
-- **Node.js**: Handles WebSocket and HTTP requests for seamless communication.
+### Features
 
-## Key Benefits
+- Expose Localhost: Tunnel your local services to a public endpoint.
+- WebSocket-Based Tunneling: Uses WebSockets for bi-directional real-time communication between client and server.
+- Flask API Client: Lightweight Python-based client to forward HTTP traffic from tunnel to local server.
+- Node.js Server: Public-facing WebSocket + HTTP listener that relays traffic to the local machine.
 
-- **Access Control**: No need for complex configurations—simply expose a service with minimal setup.
-- **Security**: Build on top of Node.js and Flask to easily implement SSL or other security protocols.
-- **Cross-Language Integration**: Combines both Node.js and Python to give flexibility in use.
+### Key Benefits
 
-## How It Works
+- No Port Forwarding Needed: Tunnel requests without modifying your router.
+- Secure Communication: Easily integrate TLS and other security protocols on the server side.
+- Cross-Platform Integration: Works across Node.js and Python, giving you flexibility.
 
-The reverse proxy listens for incoming requests and forwards them to your local services running on a private network or development environment. It uses WebSockets for low-latency connections, while HTTP manages standard requests. Flask provides an API to handle routing, making this a versatile solution for local and public network communication.
+### How It Works
 
-## Getting Started
+The system sets up a tunnel where:
 
-### Prerequisites
+- The Node.js server listens for HTTP requests and forwards them via WebSocket to a connected Python Flask client running on your local machine.
+- The client receives the forwarded requests, processes them locally, and sends back the responses via WebSocket.
+- From the outside, your service appears publicly hosted, even though it's running privately.
 
-- Node.js (for WebSocket functionality)
-- Python (for Flask API)
-- WebSocket library (`ws`) and Flask module
-- Basic knowledge of reverse proxy concepts
+This tunneling approach avoids the need for direct access to your local IP or router configuration.
+### Getting Started
+
+Prerequisites
+
+- Node.js (WebSocket + HTTP server)
+- Python (for the tunneling client)
+- Basic understanding of HTTP tunneling
+- WebSocket library (ws) and Flask module
 
 ### Installation
 
-1. Clone the repository:
+- Clone the repository:
 ```bash
-git clone https://github.com/0xk3sh4v/reverse-proxy.git
+git clone https://github.com/0xk3sh4v/http-tunnel.git
 ```
 
-2. Install dependencies:
-
-```md
-cd reverse-proxy/node
+- Install dependencies:
+```bash
+cd http-tunnel/node
 npm install
-cd reverse-proxy/python
+cd ../python
 pip install -r requirements.txt
 ```
-
-3. Run the proxy:
-```js
-// before you start this, make sure to configure the addreess and everything inside the file.
-// Also make sure to only run this on the server which has a forwarded port.
+- Run the public WebSocket + HTTP server:
+```
+// Configure the host, port, and tunnel settings inside proxy.js
+// Run only on a machine with a publicly accessible port (e.g., cloud server or forwarded port)
 node proxy.js
-// note down the address:port of the proxy server
-```
-4. Start the Flask API client:
-```py
-# For this, paste the address of the above websocket server
-# that way, it can send and recv data with the server without configuring your local network
-# before running the client, make sure to configure the port on the localhost that you want to forward
-nohup python client.py -o output.out
+// Note the public address:port of this server
 ```
 
-5. Run an API on localhost:<port> where the port should be the same as the one you setup in `client.py`
+- Start the Python client:
 
+```
+# Provide the WebSocket server address from the step above
+# This client will create a tunnel between the public server and your local service
+# Make sure to set the correct local port (your actual API or service port) in client.py
+nohup python client.py -o output.out &
+```
+- **Ensure your local service is running on the configured port (e.g., localhost:5000)**
 
-## Security Considerations
-- SSL/TLS support for encrypted traffic. All of this depends upon the proxy.
+### Security Considerations
 
-- Rate-limiting and authentication mechanisms should be added for additional security.
+- This project is to NOT be used to host servers like Web RtC or real time connectivity apps due to its unreliablity in providing good speeds.
 
-- Always monitor the traffic for potential abuse or misuse.
+- Add SSL/TLS support on the Node.js server for encrypted traffic.
 
-## What's next?
-- Implement custom error handling and logging for better debugging.
-- Add more advanced configuration options, such as dynamic routing.
-- Extend the project to support load balancing or multiple upstream servers.
+- Consider rate limiting and authentication on the **Node JS proxy** to prevent abuse. 
+
+- Log and monitor tunnel activity to detect anomalies or misuse.
+
+### Future Plans
+
+- ~~Forward the initiator IP address to the localhost for more flexiblity and also to allow other vast project deployments~~
+- ~~Add custom error handling and verbose logging.~~
+- Implement dynamic routing to support multiple tunnels.- 
+- Add support for load balancing and multiple client connections.
