@@ -2,25 +2,21 @@ import websocket
 import threading
 import requests
 import json
-import base64
 
 machine = "localhost"
-localapiport = 
-PROXY_WS_URL = "ws://ip:port"
+localapiport = 4545
+PROXY_WS_URL = "ws://217.160.125.127:9516"
 
 def on_message(ws, message):
     try:
         data = json.loads(message)
         method = data["method"]
-        path = data["url"]
+        path = data["endpoint"]
+        ip = data["clientIP"]   # sending this over to localhost using x-forwarded-for
         body = data["body"]
-        is_binary = data.get("isBinary", False)
-
         headers = data.get("headers", {})
-        headers.update({"X-Forwarded-For": data.get("remoteAddress", "UNKNOWN")})
+        headers.update({"X-Forwarded-For": ip})
 
-        if is_binary:
-            body = base64.b64decode(body)
 
         response = requests.request(
             method,
@@ -29,27 +25,11 @@ def on_message(ws, message):
             headers=headers
         )
 
-        # Detect if backend response is binary (media, etc.)
-        content_type = response.headers.get("Content-Type", "")
-        is_response_binary = not content_type.startswith("text/") and "json" not in content_type
-
-        payload = {
-            "status": response.status_code,
-            "headers": dict(response.headers),
-            "isBinary": is_response_binary,
-            "body": base64.b64encode(response.content).decode() if is_response_binary else response.text
-        }
-
-        ws.send(json.dumps(payload))
+        ws.send(response.text)
     except Exception as e:
         print("Error handling message:", e)
-        ws.send(json.dumps({
-            "status": 500,
-            "headers": {"Content-Type": "text/plain"},
-            "isBinary": False,
-            "body": "Error: " + str(e)
-        }))
-
+        ws.send("Error: " + str(e))
+        
 def on_open(ws):
     print("[+] Connected to proxy WebSocket")
 
@@ -69,6 +49,7 @@ def run():
                 on_close=on_close,
                 on_error=on_error
             )
+
             ws.run_forever()
         except Exception as e:
             print("retrying connection in 5 seconds due to error:", e)
