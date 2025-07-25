@@ -3,8 +3,6 @@ const WebSocket = require("ws");
 const url = require("url");
 const configs = require("./proxyconfig.json");
 
-const ws = new WebSocket.Server({ server });
-
 let clientSocket = null;
 
 const server = http.createServer(function (req, res) {
@@ -128,6 +126,8 @@ const server = http.createServer(function (req, res) {
     });
 });
 
+const ws = new WebSocket.Server({ server });
+
 ws.on('connection', function connection(client) {
 
     console.log('New WebSocket connection established.');
@@ -145,5 +145,5 @@ ws.on('connection', function connection(client) {
 });
 
 server.listen(configs.port, configs.address, function () {
-    console.log("[+] HTTP + WebSocket server listening on port " + PORT);
+    console.log("[+] Server Online, Websocket + API");
 });
