@@ -1,6 +1,6 @@
 {
-    "proxy-ip" : "192.168.1.1",
-    "proxy-port" : 4545,
+    "proxy-ip" : "104.21.96.1",
+    "proxy-port" : 25239,
     "localApplicationIP" : "localhost",
-    "localApplicationPort" : 3030
+    "localApplicationPort" : 4545
 }

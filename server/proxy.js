@@ -144,6 +144,6 @@ ws.on('connection', function connection(client) {
 
 });
 
-server.listen(configs.port, configs.address, function () {
+server.listen(configs.port, function () {
     console.log("[+] Server Online, Websocket + API");
 });
