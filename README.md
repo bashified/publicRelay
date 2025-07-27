@@ -1,5 +1,9 @@
 # HTTP Tunnel – Expose Localhost to Public Network
 
+- Before you begin using this project, I would like to state that this project is NOT picture perfect. I spend my time polishing this and adding more updates every now and then. This has been one of my dream projects and I am always excited to work on it any time that I can. So please if you decide to use this and find any issues, make sure to make a [pull request](https://github.com/0xk3sh4v/http-tunnel/pulls) or open an [issue](https://github.com/0xk3sh4v/http-tunnel/issues). Thank you.
+
+- This project was previously called "Http Proxy" which was misleading since this does not provide any IP spoofing, it's a simple tunnel that connects your localhost to the World Wide Web with no need to manage API keys and code integrations, all you ever need is a minimum specification hardware server on AWS, Linode or any Cloud Providing Service and you're ready to launch your project of any size on the internet!
+
 ### Overview
 
 This project is an HTTP tunneling solution designed to expose your local server to the public internet. Built using Node.js and Python, it leverages WebSockets (ws), HTTP, and Flask to create a simple and persistent tunnel between your local environment and a publicly accessible endpoint. This makes it perfect for local development, remote testing, or quickly sharing your service without port forwarding to some limited users.
@@ -11,10 +15,22 @@ This project is an HTTP tunneling solution designed to expose your local server 
 - WebSocket-Based Tunneling: Uses WebSockets for bi-directional real-time communication between client and server.
 - Flask API Client: Lightweight Python-based client to forward HTTP traffic from tunnel to local server.
 - Node.js Server: Public-facing WebSocket + HTTP listener that relays traffic to the local machine.
+- Remote Address Transfer: Unlike most traditional http tunnels that lose the initial remote address of the request initiator, I use the `"X-Forwarded-For"` header to transfer the initial IP address. 
+
+```py
+print("Remote Address:", request.headers.get("X-Forwarded-For"))
+
+"""
+Using this, the initial IP address of the initiator 
+can be found and be used for m
+onitoring, logging, moderating or cooldown purposes. 
+"""
+```
 
 ### Key Benefits
 
 - No Port Forwarding Needed: Tunnel requests without modifying your router.
+- Lossless Data Transfer: Using websockets, the request body and headers are transfered without any loss to the client and the response is fetched to the server.
 - Secure Communication: Easily integrate TLS, WSS and other security protocols on the server side to ensure no man in the middle threats.
 - Cross-Platform Integration: Works across Node.js and Python, giving you flexibility.
 
@@ -27,6 +43,7 @@ The system sets up a tunnel where:
 - From the outside, your service appears publicly hosted, even though it's running privately.
 
 This tunneling approach avoids the need for direct access to your local IP or router configuration.
+
 ### Getting Started
 
 Prerequisites
@@ -40,7 +57,7 @@ Prerequisites
 
 - Clone the repository:
 ```bash
-git clone https://github.com/0xk3sh4v/http-tunnel.git
+git clone https://github.com/0xk3sh4v/http-tunnel
 ```
 
 - Install dependencies:
