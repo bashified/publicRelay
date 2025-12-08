@@ -1,101 +1,216 @@
-# HTTP Tunnel – Expose Localhost to Public Network
+# publicRelay — Expose Local Services to the Internet via WebSocket Tunneling
 
-- Before you begin using this project, I would like to state that this project is NOT picture perfect. I spend my time polishing this and adding more updates every now and then. This has been one of my dream projects and I am always excited to work on it any time that I can. So please if you decide to use this and find any issues, make sure to make a [pull request](https://github.com/0xk3sh4v/http-tunnel/pulls) or open an [issue](https://github.com/0xk3sh4v/http-tunnel/issues). Thank you.
+> Lightweight, self‑hosted HTTP reverse tunnel to expose `localhost` to the public internet using a Node.js relay and a Python client.
 
-- This project was previously called "Http Proxy" which was misleading since this does not provide any IP spoofing, it's a simple tunnel that connects your localhost to the World Wide Web with no need to manage API keys and code integrations, all you ever need is a minimum specification hardware server on AWS, Linode or any Cloud Providing Service and you're ready to launch your project of any size on the internet!
+---
 
-### Overview
+## About
 
-This project is an HTTP tunneling solution designed to expose your local server to the public internet. Built using Node.js and Python, it leverages WebSockets (ws), HTTP, and Flask to create a simple and persistent tunnel between your local environment and a publicly accessible endpoint. This makes it perfect for local development, remote testing, or quickly sharing your service without port forwarding to some limited users.
+`publicRelay` (formerly *HTTP Tunnel / Http Proxy*) is an open‑source tunneling system that lets you publish a local web service without port‑forwarding or ISP NAT configuration. A public Node.js relay server accepts HTTP traffic and forwards it over a persistent WebSocket connection to a Python client running beside your local app. Responses are streamed back through the tunnel to the original requester.
 
-### Features
+This project is built for developers who want a simple, inspectable alternative to commercial tunnels—ideal for local development, demos, webhook testing, or temporary sharing.
 
-- Open source: The code can be modified as per user needs to add more logging, monitoring or simply run it with no mods.
-- Expose Localhost: Tunnel your local services to a public endpoint.
-- WebSocket-Based Tunneling: Uses WebSockets for bi-directional real-time communication between client and server.
-- Flask API Client: Lightweight Python-based client to forward HTTP traffic from tunnel to local server.
-- Node.js Server: Public-facing WebSocket + HTTP listener that relays traffic to the local machine.
-- Remote Address Transfer: Unlike most traditional http tunnels that lose the initial remote address of the request initiator, I use the `"X-Forwarded-For"` header to transfer the initial IP address. 
+> ⚠️ This project is experimental and actively evolving. If you hit issues or have improvements, please open an issue or PR.
 
-```py
-print("Remote Address:", request.headers.get("X-Forwarded-For"))
+---
 
-"""
-Using this, the initial IP address of the initiator 
-can be found and be used for m
-onitoring, logging, moderating or cooldown purposes. 
-"""
+## Features
+
+* **Zero port forwarding** — Works behind NAT / CGNAT.
+* **Bi‑directional streaming** — Full request/response relay over WebSocket.
+* **Binary-safe** — Handles JSON, text, and media via base64 for non‑text payloads.
+* **Header preservation** — Forwards request headers end‑to‑end.
+* **Real client IP** — Injects `X-Forwarded-For` with the original remote address.
+* **Self‑hosted** — Run on your own VPS (AWS/Linode/DO/etc.).
+* **Hackable** — Simple codebase, easy to extend.
+
+---
+
+## Architecture
+
+```
+[ Internet Client ]
+        │
+        ▼
+[ Node.js Relay (Public IP) ]
+        │   WebSocket (JSON / Base64)
+        ▼
+[ Python Client (Private) ] ──► [ Local App (127.0.0.1:PORT) ]
 ```
 
-### Key Benefits
+---
 
-- No Port Forwarding Needed: Tunnel requests without modifying your router.
-- Lossless Data Transfer: Using websockets, the request body and headers are transfered without any loss to the client and the response is fetched to the server.
-- Secure Communication: Easily integrate TLS, WSS and other security protocols on the server side to ensure no man in the middle threats.
-- Cross-Platform Integration: Works across Node.js and Python, giving you flexibility.
+## How It Works
 
-### How It Works
+1. **Public Relay** (Node.js) listens for HTTP requests and an incoming WebSocket connection.
+2. When a request arrives, the relay serializes the request (method, path, headers, body).
+3. The serialized request is sent over WebSocket to the Python client.
+4. The client replays the request locally using `requests`.
+5. The response is sent back over WebSocket.
+6. The relay converts it into a real HTTP response for the original requester.
 
-The system sets up a tunnel where:
+The original visitor never talks directly to your private network.
 
-- The Node.js server listens for HTTP requests and forwards them via WebSocket to a connected Python Flask client running on your local machine.
-- The client receives the forwarded requests, processes them locally, and sends back the responses via WebSocket where they are sent back to the visitor via the Node.js server.
-- From the outside, your service appears publicly hosted, even though it's running privately.
+---
 
-This tunneling approach avoids the need for direct access to your local IP or router configuration.
+## Getting Started
 
-### Getting Started
+### Requirements
 
-Prerequisites
+* Public VPS with a reachable port
+* Node.js ≥ 16
+* Python ≥ 3.8
+* `ws`, `requests`, `websocket-client`
 
-- Node.js (WebSocket + HTTP server)
-- Python (for the tunneling client)
-- Basic understanding of HTTP tunneling
-- WebSocket library (ws) and Flask module
+---
 
-### Installation
+## Installation
 
-- Clone the repository:
+### 1. Clone
+
 ```bash
-git clone https://github.com/0xk3sh4v/http-tunnel
+git clone https://github.com/bashified/publicRelay
+cd publicRelay
 ```
 
-- Install dependencies:
+---
+
+### 2. Server Setup (Public Machine)
+
 ```bash
-cd http-tunnel/server
+cd server
 npm install
-cd ..
-pip install -r requirements.txt
 ```
 
-- Configure the server and client addresses in `server/proxyconfig.json` and `client/clientconfig.json` respectively. Make sure to put the right address for the public endpoint and the private endpoint.
+Edit `server/proxyconfig.json` to point to the open port
 
-- Run the public WebSocket + HTTP server on the public endpoint:
+```json
+{
+  "port": 8080
+}
+```
+
+Run the relay:
+
 ```bash
-// Run only on a machine with a publicly accessible port (e.g., cloud server or forwarded port)
 node proxy.js
 ```
 
-- Start the Python client on the machine that you have an application running on local host:
+---
+
+### 3. Client Setup (Local Machine)
 
 ```bash
-# This client will create a tunnel between the public server and your local service
-nohup python client.py -o output.out &
+cd client
+pip install -r requirements.txt
 ```
-- **Ensure your local service is running on the configured port (e.g., localhost:5000)**
 
-### Security Considerations
+Edit `client/clientconfig.json`:
 
-- This project is to NOT be used to host servers like Web RtC or real time connectivity apps due to its unreliablity in providing good speeds due to the response relying on 2 server responses instead of just one.
+```json
+{
+  "proxy-ip": "YOUR_VPS_IP",
+  "proxy-port": 8080,
+  "localApplicationIP": "127.0.0.1",
+  "localApplicationPort": 5000
+}
+```
 
-- Add WSS and SSL certificate for HTTPS support on the Node.js server for encrypted traffic.
+Run the client:
 
-- Consider rate limiting and authentication on the **Node JS proxy** to prevent abuse, I have not implemented this because i was already handling the ratelimiting on the localhost app and did not see the need to install another potential firewall
+```bash
+python client.py
+```
 
-### Future Plans
+or in background:
 
-- ~~Forward the initiator IP address to the localhost for more flexiblity and also to allow other vast project deployments~~
-- ~~Add custom error handling and verbose logging.~~
-- ~~Add updates for media sharing aswell using binary or changing the encoding~~
-- Implement more paths to introduce multiple tunnels. 
-- Add better logging for easier breakdown of activity on the proxy.
+```bash
+nohup python client.py > client.log &
+```
+
+Make sure your local app is listening on `localhost:5000` or the address that u configured on the proxy.
+
+---
+
+## Testing
+
+In command prompt
+
+```
+curl http://YOUR_VPS_IP:8080/
+```
+
+If correctly connected:
+
+```
+Tunnel is alive
+```
+
+Try forwarding requests to your local server:
+
+```
+http://YOUR_VPS_IP:8080/api
+```
+
+---
+
+## Reading the Forwarded IP
+
+The server sends the initiator ip under the `"X-Forwarded-For"` header and this can be like this :
+
+```python
+# python
+request.headers.get("X-Forwarded-For")
+```
+This should be used instead of `req.ip` to avoid getting "localhost"
+
+---
+
+## Security Notes
+
+* No authentication is currently implemented.
+* Anyone hitting your relay can reach your local app.
+* Recommended protections:
+
+  * IP filtering
+  * Auth tokens
+  * Rate limiting
+  * Getting an SSL cert to allow traffic and responses in HTTP/S
+
+> Do NOT use this for banking, auth flows, or sensitive production workloads.
+
+---
+
+## Known Limitations
+
+* Single active client connection
+* Not suitable for WebRTC or long‑lived streams
+* Adds latency due to request relay
+
+---
+
+## Roadmap
+
+[ * ] ~~Forward initiator IP~~
+[ * ] ~~Binary payload support~~
+[ * ] ~~Header passthrough~~
+[ ? ] Implementing a configurable firewall
+[ ? ] Blacklist feature for potential DDoS detection
+[ ? ] Multi‑tunnel support
+[ ? ] Authentication layer
+[ ? ] Access logging dashboard
+[ ? ] Traffic statistics
+
+---
+
+## Contributing
+
+Pull requests welcome.
+
+If you add a feature, **document it.**
+
+---
+
+If you break it — fix it.
+If you improve it — PR it.
+If you love it — star it.
