@@ -8,7 +8,7 @@
 
 `publicRelay` (formerly *HTTP Tunnel / Http Proxy*) is an open‑source tunneling system that lets you publish a local web service without port‑forwarding or ISP NAT configuration. A public Node.js relay server accepts HTTP traffic and forwards it over a persistent WebSocket connection to a Python client running beside your local app. Responses are streamed back through the tunnel to the original requester.
 
-This project is built for developers who want a simple, inspectable alternative to commercial tunnels—ideal for local development, demos, webhook testing, or temporary sharing.
+This project is built for developers who want a simple, inspectable alternative to commercial tunnels ideal for local development, demos, webhook testing, or temporary sharing.
 
 > ⚠️ This project is experimental and actively evolving. If you hit issues or have improvements, please open an issue or PR.
 
@@ -16,13 +16,13 @@ This project is built for developers who want a simple, inspectable alternative 
 
 ## Features
 
-* **Zero port forwarding** — Works behind NAT / CGNAT.
-* **Bi‑directional streaming** — Full request/response relay over WebSocket.
-* **Binary-safe** — Handles JSON, text, and media via base64 for non‑text payloads.
-* **Header preservation** — Forwards request headers end‑to‑end.
-* **Real client IP** — Injects `X-Forwarded-For` with the original remote address.
-* **Self‑hosted** — Run on your own VPS (AWS/Linode/DO/etc.).
-* **Hackable** — Simple codebase, easy to extend.
+* **Zero port forwarding** - Works behind NAT / CGNAT.
+* **Bi‑directional streaming** - Full request/response relay over WebSocket.
+* **Binary-safe** - Handles JSON, text, and media via base64 for non‑text payloads.
+* **Header preservation** - Forwards request headers end‑to‑end.
+* **Real client IP** - Injects `X-Forwarded-For` with the original remote address.
+* **Self‑hosted** - Run on your own VPS (AWS/Linode/DO/etc.).
+* **Hackable** - Simple codebase, easy to extend.
 
 ---
 
@@ -42,7 +42,7 @@ This project is built for developers who want a simple, inspectable alternative 
 
 ## How It Works
 
-1. **Public Relay** (Node.js) listens for HTTP requests and an incoming WebSocket connection.
+1. Public Relay (Node.js) listens for HTTP requests and an incoming WebSocket connection.
 2. When a request arrives, the relay serializes the request (method, path, headers, body).
 3. The serialized request is sent over WebSocket to the Python client.
 4. The client replays the request locally using `requests`.

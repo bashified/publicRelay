@@ -9,24 +9,26 @@ const server = http.createServer(function (req, res) {
     const parsedUrl = url.parse(req.url, true);
     const method = req.method;
 
-    // I no longer need this since i am not routing traffic from a website anymore and instead im using a webserver, uncomment this as per user need.
-    //  // HANDLING CORS
-    //     if (method === "OPTIONS") {
-    //         res.writeHead(200, {
-    //             "Access-Control-Allow-Origin": "*",
-    //             "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
-    //             "Access-Control-Allow-Headers": "Content-Type, X-Requested-With",
-    //         });
-    //         res.end();
-    //         return;
-    //     }
+    // HANDLING CORS // uncommented this for needs
+        
+    if (method === "OPTIONS") {
+        res.writeHead(200, {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+            "Access-Control-Allow-Headers": "Content-Type, X-Requested-With",
+        });
+        res.end();
+        return;
+    }
 
     // home page
-    if (method === "GET" && parsedUrl.pathname === "/") {
-    
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end("tunnel is alive, this tunnel is open source here: https://github.com/0xk3sh4v/http-tunnel");
-        return;
+    if (parsedUrl.pathname === "/") {
+        
+        if (clientSocket != null){
+            res.writeHead(200, { "Content-Type": "text/plain" });
+            res.end("Layer4 active with the client, this tunnel is open source here: https://github.com/bashified/publicRelay");
+            return;
+        }
     
     }
 
@@ -37,6 +39,14 @@ const server = http.createServer(function (req, res) {
 
     req.on("data", function (chunk) {
         
+        // Handle suspicious connections
+
+        if (Number(chunk.length) > 200000000) {   // 200MB limit for now, can be adjusted later i found this to be the most suitable for my use case
+            res.writeHead(413, { "Content-Type": "text/plain" });
+            res.end("Payload too large, denied by proxy.");
+            return;
+        }
+
         const ct = req.headers["content-type"] || "";
         
         if (ct.startsWith("text/") || ct.includes("json")) {    // for now, we are only taking care of json and text and media files.
