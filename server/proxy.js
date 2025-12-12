@@ -5,12 +5,51 @@ const configs = require("./proxyconfig.json");
 
 let clientSocket = null;
 
+const rateMap = new Map(); // ip -> { count, last }
+
+const MAX_REQ = configs.maxreq
+const WINDOW_MS = configs.windowms
+
+function rateLimited(ip) {
+    const now = Date.now();
+    let entry = rateMap.get(ip);
+
+    if (!entry) {
+        entry = { count: 1, last: now };
+        rateMap.set(ip, entry);
+        return false;
+    }
+
+    if (now - entry.last > WINDOW_MS) {
+        entry.count = 1;
+        entry.last = now;
+        return false;
+    }
+
+    entry.count++;
+
+    if (entry.count > MAX_REQ) return true;
+    return false;
+}
+
 const server = http.createServer(function (req, res) {
+
+    const ip = req.socket.remoteAddress || "unknown";
+    if (rateLimited(ip)) {
+        res.writeHead(429, { "Content-Type": "text/plain" });
+        res.end("Too many requests, rate limited by the proxy.");
+        return;
+    }
+
+    req.setTimeout(10000, () => {
+        res.setHeader("Content-Type", "text/plain");
+        res.send("Timeout: Request took too long to process.");
+        req.destroy();
+    });
+
     const parsedUrl = url.parse(req.url, true);
     const method = req.method;
 
-    // HANDLING CORS // uncommented this for needs
-        
     if (method === "OPTIONS") {
         res.writeHead(200, {
             "Access-Control-Allow-Origin": "*",
@@ -21,39 +60,29 @@ const server = http.createServer(function (req, res) {
         return;
     }
 
-    // home page
     if (parsedUrl.pathname === "/") {
-        
         if (clientSocket != null){
             res.writeHead(200, { "Content-Type": "text/plain" });
             res.end("Layer4 active with the client, this tunnel is open source here: https://github.com/bashified/publicRelay");
             return;
         }
-    
     }
 
     let body = "";
+    let chunks = [];
 
-    // Binary chunks for incoming media, might find a way to decode and encode this in some later updates but for now this works
-    let chunks = [];  
+    const ct = req.headers["content-type"] || "";
 
     req.on("data", function (chunk) {
-        
-        // Handle suspicious connections
-
-        if (Number(chunk.length) > 200000000) {   // 200MB limit for now, can be adjusted later i found this to be the most suitable for my use case
+        if (Number(chunk.length) > 200000000) {
             res.writeHead(413, { "Content-Type": "text/plain" });
             res.end("Payload too large, denied by proxy.");
             return;
         }
 
-        const ct = req.headers["content-type"] || "";
-        
-        if (ct.startsWith("text/") || ct.includes("json")) {    // for now, we are only taking care of json and text and media files.
+        if (ct.startsWith("text/") || ct.includes("json")) {
             body += chunk;
-        } 
-
-        else {
+        } else {
             chunks.push(chunk);
         }
     });
@@ -62,17 +91,12 @@ const server = http.createServer(function (req, res) {
         let finalBody = body;
         let isBinary = false;
 
-        // Merge the binary chunks
-
-        if (!(req.headers["content-type"] && req.headers["content-type"].startsWith("text/"))) {
+        if (!ct.startsWith("text/") && !ct.includes("json")) {
             finalBody = Buffer.concat(chunks);
             isBinary = true;
         }
 
         if (clientSocket && clientSocket.readyState === WebSocket.OPEN) {
-
-            // FETCH DATA TO SEND TO CLIENT
-            // Instead of manually extracting parts unlike my previous version, send the entire request object
 
             const fullRequest = {
                 method: req.method,
@@ -86,51 +110,39 @@ const server = http.createServer(function (req, res) {
 
             clientSocket.send(JSON.stringify(fullRequest));
 
-            // sending back the response
-
             clientSocket.once("message", function (response) {
                 try {
-                    
                     const parsed = JSON.parse(response.toString());
 
                     if (parsed.isBinary) {
-                    
                         const buffer = Buffer.from(parsed.body, "base64");
-                        
+
                         res.writeHead(parsed.status || 200, {
                             ...parsed.headers,
                             "Access-Control-Allow-Origin": "*",
                         });
-                        
+
                         res.end(buffer);
-                    } 
-                    
-                    else {
-                    
+                    } else {
                         res.writeHead(parsed.status || 200, {
                             "Content-Type": parsed.headers["content-type"] || "application/json",
                             "Access-Control-Allow-Origin": "*",
                         });
-                    
+
                         res.end(parsed.body);
                     }
-                } 
-                
-                catch (e) {
+                } catch (e) {
                     res.writeHead(500, { "Content-Type": "text/plain" });
                     res.end("Error while parsing the response from the backend. Debug: ", e);
                 }
             });
 
-        } 
-        
-        else {
-        
+        } else {
             res.writeHead(502, {
                 "Content-Type": "text/plain",
                 "Access-Control-Allow-Origin": "*",
             });
-        
+
             res.end("Proxy client has lost connection.");
         }
     });
